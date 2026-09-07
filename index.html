@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tranca Paranormal</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #c62828;
+            --border-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        input, select {
+            background-color: #2c2c2c;
+            color: white;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #b71c1c;
+        }
+
+        .hidden-password {
+            background-color: #000;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.5em;
+            letter-spacing: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            border: 1px dashed var(--accent-color);
+        }
+
+        #resultado {
+            font-size: 1.2em;
+            text-align: center;
+            font-weight: bold;
+            color: #4caf50;
+            min-height: 30px;
+            margin-top: 10px;
+        }
+
+        .error {
+            color: #f44336;
+            text-align: center;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tranca Paranormal</h1>
+
+    <!-- Seção 1: Geração da Senha -->
+    <div class="card">
+        <h3>1. Configurar Dificuldade</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="qtdDados">Quantidade de Dados (1-10)</label>
+                <input type="number" id="qtdDados" min="1" max="10" value="3">
+            </div>
+            <div class="form-group">
+                <label for="tipoDado">Tipo do Dado</label>
+                <select id="tipoDado">
+                    <option value="4">d4</option>
+                    <option value="6" selected>d6</option>
+                    <option value="8">d8</option>
+                    <option value="10">d10</option>
+                    <option value="12">d12</option>
+                    <option value="20">d20</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="gerarSenha()">Gerar Nova Senha</button>
+        
+        <div class="form-group" style="margin-top: 15px;">
+            <label>Senha Atual (Clique para revelar/ocultar):</label>
+            <div id="senhaDisplay" class="hidden-password" onclick="toggleSenha()">???</div>
+        </div>
+    </div>
+
+    <!-- Seção 2: De/Para do Feedback -->
+    <div class="card">
+        <h3>2. Configurar Feedback (De/Para)</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="txtBaixo">Palpite Menor (Baixo)</label>
+                <input type="text" id="txtBaixo" value="Baixo" placeholder="Ex: Tick">
+            </div>
+            <div class="form-group">
+                <label for="txtExato">Palpite Igual (Exato)</label>
+                <input type="text" id="txtExato" value="Exato" placeholder="Ex: Click">
+            </div>
+            <div class="form-group">
+                <label for="txtAlto">Palpite Maior (Alto)</label>
+                <input type="text" id="txtAlto" value="Alto" placeholder="Ex: Clock">
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção 3: Tentativa do Jogador -->
+    <div class="card">
+        <h3>3. Tentativa dos Jogadores</h3>
+        <div class="form-group">
+            <label for="palpite">Números jogados (separados por espaço ou vírgula):</label>
+            <input type="text" id="palpite" placeholder="Ex: 5 5 5 ou 1, 4, 3">
+            <div id="erroMsg" class="error"></div>
+        </div>
+        <button onclick="verificarPalpite()">Verificar</button>
+        
+        <div class="form-group" style="margin-top: 15px;">
+            <label>O Mestre diz:</label>
+            <div id="resultado">Aguardando palpite...</div>
+        </div>
+    </div>
+
+    <script>
+        let senhaAtual = [];
+        let senhaOculta = true;
+
+        function gerarSenha() {
+            const qtd = parseInt(document.getElementById('qtdDados').value);
+            const lados = parseInt(document.getElementById('tipoDado').value);
+            
+            if (qtd < 1 || qtd > 10) {
+                alert("A quantidade de dados deve ser entre 1 e 10.");
+                return;
+            }
+
+            senhaAtual = [];
+            for (let i = 0; i < qtd; i++) {
+                senhaAtual.push(Math.floor(Math.random() * lados) + 1);
+            }
+
+            senhaOculta = true;
+            atualizarVisorSenha();
+            document.getElementById('resultado').innerText = "Senha gerada. Aguardando palpite...";
+            document.getElementById('erroMsg').innerText = "";
+            document.getElementById('palpite').value = "";
+        }
+
+        function toggleSenha() {
+            if (senhaAtual.length === 0) return;
+            senhaOculta = !senhaOculta;
+            atualizarVisorSenha();
+        }
+
+        function atualizarVisorSenha() {
+            const visor = document.getElementById('senhaDisplay');
+            if (senhaAtual.length === 0) {
+                visor.innerText = "???";
+            } else if (senhaOculta) {
+                visor.innerText = "Clique para revelar";
+                visor.style.color = "#666";
+            } else {
+                visor.innerText = senhaAtual.join(" - ");
+                visor.style.color = "var(--text-color)";
+            }
+        }
+
+        function verificarPalpite() {
+            if (senhaAtual.length === 0) {
+                document.getElementById('erroMsg').innerText = "Gere uma senha primeiro!";
+                return;
+            }
+
+            const input = document.getElementById('palpite').value;
+            // Separa por vírgula ou espaço e ignora espaços em branco vazios
+            const palpites = input.split(/[\s,]+/).filter(val => val !== '').map(Number);
+            const erroMsg = document.getElementById('erroMsg');
+
+            if (palpites.length !== senhaAtual.length || palpites.some(isNaN)) {
+                erroMsg.innerText = `Erro: Você deve inserir exatamente ${senhaAtual.length} números válidos.`;
+                return;
+            }
+            erroMsg.innerText = "";
+
+            const palavraBaixo = document.getElementById('txtBaixo').value || "Baixo";
+            const palavraExato = document.getElementById('txtExato').value || "Exato";
+            const palavraAlto = document.getElementById('txtAlto').value || "Alto";
+
+            let resultados = [];
+
+            for (let i = 0; i < senhaAtual.length; i++) {
+                if (palpites[i] < senhaAtual[i]) {
+                    resultados.push(palavraBaixo);
+                } else if (palpites[i] > senhaAtual[i]) {
+                    resultados.push(palavraAlto);
+                } else {
+                    resultados.push(palavraExato);
+                }
+            }
+
+            document.getElementById('resultado').innerText = resultados.join(" - ");
+        }
+
+        // Gera uma senha inicial ao carregar a página
+        window.onload = gerarSenha;
+    </script>
+</body>
+</html>
